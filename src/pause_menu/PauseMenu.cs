@@ -51,13 +51,21 @@ public partial class PauseMenu : Control, IPauseMenu
 
   #endregion Signals
 
+  public string LifecycleEventsText { get; set; } = string.Empty;
+
+  public override void _Ready() => LifecycleEventsText += "_Ready";
+
   public void OnReady()
   {
+    LifecycleEventsText += ", OnReady";
+
     MainMenuButton.Pressed += OnMainMenuPressed;
     ResumeButton.Pressed += OnResumePressed;
     SaveButton.Pressed += OnSavePressed;
     AnimationPlayer.AnimationFinished += OnAnimationFinished;
   }
+
+  public void OnResolved() => LifecycleEventsText += ", OnResolved";
 
   public void OnExitTree()
   {

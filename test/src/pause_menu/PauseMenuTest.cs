@@ -52,6 +52,20 @@ public class PauseMenuTest : TestClass
   }
 
   [Test]
+  public async Task OnReadyShouldBeBeforeOnResolved()
+  {
+    var pauseMenu = ResourceLoader
+      .Load<PackedScene>("res://src/pause_menu/PauseMenu.tscn")
+      .Instantiate<PauseMenu>();
+
+    var sceneTree = TestScene.GetTree();
+    sceneTree.Root.CallDeferred(Node.MethodName.AddChild, pauseMenu);
+    await sceneTree.ToSignal(sceneTree, SceneTree.SignalName.ProcessFrame);
+
+    pauseMenu.LifecycleEventsText.ShouldBe("_Ready, OnReady, OnResolved");
+  }
+
+  [Test]
   public void Subscribes()
   {
     _menu.OnReady();

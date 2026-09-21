@@ -1,5 +1,6 @@
 namespace GameDemo;
 
+using System;
 using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -14,6 +15,7 @@ using Chickensoft.Serialization;
 using Chickensoft.Serialization.Godot;
 using Chickensoft.UMLGenerator;
 using Godot;
+using Microsoft.Extensions.DependencyInjection;
 
 public interface IApp : ICanvasLayer, IProvide<IAppRepo>, IProvide<ISaveFile>;
 
@@ -29,6 +31,46 @@ public partial class App : CanvasLayer, IApp
 
   #endregion Constants
 
+  #region Static Service Provider
+
+  internal static readonly object _serviceProviderLockObject = new();
+
+  internal static IServiceProvider? _serviceProvider;
+  /// <summary>
+  /// This service provider should be only used by App.cs and AutoInject.
+  /// It is exposed so that we can provide fallback values for in editor logic
+  /// and for when scenes are being tested individually.
+  /// </summary>
+  public static IServiceProvider ServiceProvider
+  {
+    get
+    {
+      BuildServiceProviderThreadSafe();
+      return _serviceProvider!;
+    }
+  }
+
+  private static void BuildServiceProviderThreadSafe()
+  {
+    if (_serviceProvider != null)
+    {
+      return;
+    }
+
+    lock (_serviceProviderLockObject)
+    {
+      _serviceProvider ??= new ServiceCollection()
+          .AddSingleton<IAppRepo, AppRepo>()
+          .BuildServiceProvider(new ServiceProviderOptions
+          {
+            ValidateOnBuild = true,
+            ValidateScopes = true
+          });
+    }
+  }
+
+  #endregion Static Service Provider
+
   #region External
 
   public IGame Game { get; set; } = default!;
@@ -38,7 +80,7 @@ public partial class App : CanvasLayer, IApp
 
   #region Save
 
-  public ISaveFile SaveFile { get; set; } = 
+  public ISaveFile SaveFile { get; set; } =
     Chickensoft.SaveFileBuilder.SaveFile.CreateGZipJsonFile(
       Path.Join(OS.GetUserDataDir(), "game.json.gz"),
       // Create a standard JsonSerializerOptions with our introspective type
@@ -83,8 +125,15 @@ public partial class App : CanvasLayer, IApp
 
   public void Initialize()
   {
+    if (!(this as IAutoInit).IsTesting)
+    {
+      BuildServiceProviderThreadSafe();
+    }
+
+    ArgumentNullException.ThrowIfNull(_serviceProvider);
+
     Instantiator = new Instantiator(GetTree());
-    AppRepo = new AppRepo();
+    AppRepo = _serviceProvider.GetRequiredService<IAppRepo>();
     AppLogic = new AppLogic();
     AppLogic.Set(AppRepo);
     AppLogic.Set(new AppLogic.Data());
@@ -142,11 +191,11 @@ public partial class App : CanvasLayer, IApp
       })
       .OnOutput((in AppLogicState.Output.HideGame _) => FadeToBlack())
       .OnOutput(
-        (in AppLogicState.Output.StartLoadingSaveFile _) => 
+        (in AppLogicState.Output.StartLoadingSaveFile _) =>
           LoadSaveFile().AsTask()
       )
       .OnOutput(
-        (in AppLogicState.Output.StartDeletingSaveFile _) => 
+        (in AppLogicState.Output.StartDeletingSaveFile _) =>
           DeleteSaveFile().AsTask()
       );
 

@@ -8,6 +8,7 @@ using Chickensoft.Introspection;
 using Chickensoft.LogicBlocks;
 using Chickensoft.SaveFileBuilder;
 using Godot;
+using Microsoft.Extensions.DependencyInjection;
 
 public interface IGame : INode3D
   , ISaveable<GameData>
@@ -72,7 +73,7 @@ public partial class Game : Node3D, IGame
 
   #region Dependencies
 
-  [Dependency] public IAppRepo AppRepo => this.DependOn<IAppRepo>();
+  [Dependency] public IAppRepo AppRepo => this.DependOn(() => App.ServiceProvider.GetRequiredService<IAppRepo>());
 
   #endregion Dependencies
 
@@ -133,11 +134,11 @@ public partial class Game : Node3D, IGame
       .OnOutput((in GameLogicState.Output.ExitPauseMenu _) => PauseMenu.FadeOut())
       .OnOutput((in GameLogicState.Output.HidePauseMenu _) => PauseMenu.Hide())
       .OnOutput(
-        (in GameLogicState.Output.ShowPauseSaveOverlay _) => 
+        (in GameLogicState.Output.ShowPauseSaveOverlay _) =>
           PauseMenu.OnSaveStarted()
       )
       .OnOutput(
-        (in GameLogicState.Output.HidePauseSaveOverlay _) => 
+        (in GameLogicState.Output.HidePauseSaveOverlay _) =>
           PauseMenu.OnSaveCompleted()
       )
       .OnOutput((in GameLogicState.Output.StartSaving _) => SaveGame().AsTask());

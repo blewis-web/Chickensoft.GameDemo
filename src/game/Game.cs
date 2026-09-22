@@ -7,8 +7,8 @@ using Chickensoft.GodotNodeInterfaces;
 using Chickensoft.Introspection;
 using Chickensoft.LogicBlocks;
 using Chickensoft.SaveFileBuilder;
+using GameDemo.CustomExtensions;
 using Godot;
-using Microsoft.Extensions.DependencyInjection;
 
 public interface IGame : INode3D
   , ISaveable<GameData>
@@ -73,7 +73,7 @@ public partial class Game : Node3D, IGame
 
   #region Dependencies
 
-  [Dependency] public IAppRepo AppRepo => this.DependOn(() => App.ServiceProvider.GetRequiredService<IAppRepo>());
+  [Dependency] public IAppRepo AppRepo => this.CustomDependOn<IAppRepo>();
 
   #endregion Dependencies
 

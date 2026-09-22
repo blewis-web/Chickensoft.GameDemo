@@ -1,5 +1,6 @@
 namespace GameDemo.Tests;
 
+using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
@@ -23,6 +24,7 @@ using Shouldly;
 public class AppTest : TestClass
 {
   private App _app = default!;
+  private Mock<IServiceProvider> _serviceProvider = default!;
   private Mock<IAppRepo> _appRepo = default!;
   private Mock<IAppLogic> _logic = default!;
 
@@ -42,6 +44,7 @@ public class AppTest : TestClass
   [Setup]
   public void Setup()
   {
+    _serviceProvider = new();
     _appRepo = new();
     _logic = new();
     _binding = LogicBlock.CreateFakeBinding();
@@ -73,6 +76,10 @@ public class AppTest : TestClass
 
     _logic.Setup(logic => logic.Bind()).Returns(_binding);
     _logic.Setup(logic => logic.Start<AppLogicState.SplashScreen>(true));
+
+    _serviceProvider.Setup(x => x.GetService(typeof(IAppRepo))).Returns(_appRepo.Object);
+
+    App._serviceProvider = _serviceProvider.Object;
   }
 
   [Test]
@@ -90,7 +97,7 @@ public class AppTest : TestClass
     _app.Initialize();
 
     _app.Instantiator.ShouldBeOfType<GameDemo.Instantiator>();
-    _app.AppRepo.ShouldBeOfType<AppRepo>();
+    _app.AppRepo.ShouldBeAssignableTo<IAppRepo>();
     _app.AppLogic.ShouldBeOfType<AppLogic>();
 
     _menu.VerifyAdd(menu => menu.NewGame += _app.OnNewGame);

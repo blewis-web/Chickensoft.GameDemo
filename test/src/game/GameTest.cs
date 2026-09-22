@@ -87,7 +87,10 @@ public class GameTest : TestClass
 
     (_game as IAutoInit).IsTesting = true;
 
-    _game.FakeDependency(_appRepo);
+    // Commenting out this line will make the integration test fail,
+    // but also makes the AutoInject fallback from ServiceProvider get used successfully without errors.
+    //_game.FakeDependency(_appRepo);
+
     _game.FakeDependency(_entityTable);
     _game.FakeDependency(_saveFile.Object);
 
